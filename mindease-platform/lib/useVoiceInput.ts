@@ -22,6 +22,7 @@ interface SpeechRecognitionResultList {
 }
 
 interface SpeechRecognitionEvent extends Event {
+    readonly resultIndex: number;
     readonly results: SpeechRecognitionResultList;
 }
 
@@ -82,7 +83,9 @@ export function useVoiceInput({ onTranscript, continuous = false }: UseVoiceInpu
         recognition.continuous = continuous;
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-            const transcript = Array.from({ length: event.results.length }, (_, i) => event.results[i])
+            // Only process newly added results to avoid duplicates in continuous mode
+            const newResults = Array.from({ length: event.results.length - event.resultIndex }, (_, i) => event.results[event.resultIndex + i]);
+            const transcript = newResults
                 .map((result) => result[0].transcript)
                 .join(' ')
                 .trim();
