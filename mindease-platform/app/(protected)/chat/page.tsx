@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Sparkles, Zap } from 'lucide-react';
+import { Send, User, Bot, Sparkles, Zap, Mic, MicOff } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { useVoiceInput } from '@/lib/useVoiceInput';
 
 interface Message {
 id: string;
@@ -37,6 +38,10 @@ const addMessage = (text: string, sender: 'user' | 'ai') => {
 };
 
 const { showToast } = useToast();
+
+const { isListening, isSupported: voiceSupported, toggleListening } = useVoiceInput({
+    onTranscript: (text) => setInput((prev) => prev ? `${prev} ${text}` : text),
+});
 
 // --- Updated handleSendMessage to call OpenAI ---
 const handleSendMessage = async (text: string) => {
@@ -191,9 +196,18 @@ return (
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(input)}
-                            placeholder="Type your message here..."
+                            placeholder={isListening ? 'Listening...' : 'Type your message here...'}
                             className="flex-1 bg-transparent px-3 md:px-4 py-2 md:py-3 focus:outline-none text-base md:text-lg placeholder:text-gray-400"
                         />
+                        {voiceSupported && (
+                            <button
+                                onClick={toggleListening}
+                                title={isListening ? 'Stop recording' : 'Start voice input'}
+                                className={`p-2 md:p-3 rounded-xl transition-all flex items-center justify-center ${isListening ? 'bg-red-100 text-red-500 hover:bg-red-200 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                            >
+                                {isListening ? <MicOff size={18} className="md:w-5 md:h-5" /> : <Mic size={18} className="md:w-5 md:h-5" />}
+                            </button>
+                        )}
                         <button
                             onClick={() => handleSendMessage(input)}
                             disabled={!input.trim() || loading}
