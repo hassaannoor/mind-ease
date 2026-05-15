@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Trash2, Save, Plus, Search, Sparkles, Calendar, X, Lock } from 'lucide-react';
+import { Trash2, Save, Plus, Search, Sparkles, Calendar, X, Lock, Mic, MicOff } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { encryptText, decryptText, hasEncryptionKey } from '@/lib/encryption';
+import { useVoiceInput } from '@/lib/useVoiceInput';
 
 interface JournalEntry {
     _id: string;
@@ -147,7 +148,17 @@ export default function JournalPage() {
         await fetchEntries(nextPage, true);
     };
 
-    const { showToast } = useToast();    const handleSave = async () => {
+    const { showToast } = useToast();
+
+    const { isListening, isSupported: voiceSupported, toggleListening } = useVoiceInput({
+        onTranscript: (text) => setFormData((prev) => ({
+            ...prev,
+            content: prev.content ? `${prev.content} ${text}` : text,
+        })),
+        continuous: true,
+    });
+
+    const handleSave = async () => {
         if (!formData.content) return;
         setLoading(true);
 
@@ -405,12 +416,27 @@ export default function JournalPage() {
                             </div>
                         </div>
 
-                        <textarea
-                            placeholder="Start writing your thoughts here..."
-                            className="flex-1 resize-none bg-transparent border-none p-0 focus:outline-none text-lg leading-loose text-foreground/80 placeholder:text-gray-300 min-h-[200px]"
-                            value={formData.content}
-                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                        ></textarea>                        <div className="bg-gradient-to-br from-surface-alt to-white rounded-2xl p-2 border border-white/50 shadow-sm">                            <div className="flex items-center justify-between">
+                        <div className="relative">
+                            <textarea
+                                placeholder={isListening ? 'Listening... speak your thoughts' : 'Start writing your thoughts here...'}
+                                className="flex-1 w-full resize-none bg-transparent border-none p-0 focus:outline-none text-lg leading-loose text-foreground/80 placeholder:text-gray-300 min-h-[200px]"
+                                value={formData.content}
+                                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                            ></textarea>
+                            {voiceSupported && (
+                                <button
+                                    onClick={toggleListening}
+                                    title={isListening ? 'Stop recording' : 'Start voice input'}
+                                    className={`absolute bottom-2 right-2 p-2 rounded-xl transition-all flex items-center gap-2 text-sm font-medium ${isListening ? 'bg-red-100 text-red-500 hover:bg-red-200 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                >
+                                    {isListening ? (
+                                        <><MicOff size={16} /><span>Stop</span></>
+                                    ) : (
+                                        <><Mic size={16} /><span>Dictate</span></>
+                                    )}
+                                </button>
+                            )}
+                        </div>                        <div className="bg-gradient-to-br from-surface-alt to-white rounded-2xl p-2 border border-white/50 shadow-sm">                            <div className="flex items-center justify-between">
                                 <button
                                     onClick={handleToggleAIAnalysis}
                                     disabled={analyzingAI || formData.content.trim().length < 20}
